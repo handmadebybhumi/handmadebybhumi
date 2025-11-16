@@ -1,0 +1,154 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Heart, Sparkles, CheckCircle } from "lucide-react";
+
+export default function Wishlist() {
+  const [formData, setFormData] = useState({
+    customer_name: "",
+    customer_email: "",
+    item_name: "",
+    description: ""
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const createWishlistMutation = useMutation({
+    mutationFn: (data) => base44.entities.WishlistRequest.create(data),
+    onSuccess: () => {
+      setSubmitted(true);
+      setFormData({
+        customer_name: "",
+        customer_email: "",
+        item_name: "",
+        description: ""
+      });
+      setTimeout(() => setSubmitted(false), 5000);
+    }
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createWishlistMutation.mutate(formData);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="text-center mb-12">
+        <div className="w-20 h-20 bg-gradient-to-br from-[#D97757] to-[#C55E3F] rounded-full flex items-center justify-center mx-auto mb-6">
+          <Heart className="w-10 h-10 text-white" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold text-[#8B6F47] mb-4">
+          Your Wishlist
+        </h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Can't find what you're looking for? Tell us what you'd love to see in our store, and we'll try our best to make it for you!
+        </p>
+      </div>
+
+      {submitted ? (
+        <Card className="border-2 border-green-200 bg-green-50/30">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-[#8B6F47] mb-2">
+              Thank You!
+            </h2>
+            <p className="text-gray-600">
+              We've received your wishlist request and will review it soon. We'll reach out to you if we can make it happen!
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-2 border-gray-200">
+          <CardHeader className="bg-gradient-to-br from-[#FFF8F0] to-[#FFE8D6]">
+            <CardTitle className="text-2xl text-[#8B6F47] flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-[#D97757]" />
+              Request a Custom Item
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="customer_name">Your Name *</Label>
+                  <Input
+                    id="customer_name"
+                    required
+                    value={formData.customer_name}
+                    onChange={(e) => setFormData({...formData, customer_name: e.target.value})}
+                    className="mt-1 border-2 border-gray-200 focus:border-[#D97757]"
+                    placeholder="Enter your name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customer_email">Your Email *</Label>
+                  <Input
+                    id="customer_email"
+                    type="email"
+                    required
+                    value={formData.customer_email}
+                    onChange={(e) => setFormData({...formData, customer_email: e.target.value})}
+                    className="mt-1 border-2 border-gray-200 focus:border-[#D97757]"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="item_name">What would you like us to make? *</Label>
+                <Input
+                  id="item_name"
+                  required
+                  value={formData.item_name}
+                  onChange={(e) => setFormData({...formData, item_name: e.target.value})}
+                  className="mt-1 border-2 border-gray-200 focus:border-[#D97757]"
+                  placeholder="E.g., 'Crochet teddy bear' or 'Custom color tote bag'"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Details & Preferences</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  className="mt-1 border-2 border-gray-200 focus:border-[#D97757]"
+                  placeholder="Tell us more about what you'd like - colors, size, style, or any special requirements..."
+                  rows={6}
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> This is a request form. We'll review your suggestion and contact you via email to discuss possibilities, timeline, and pricing.
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={createWishlistMutation.isPending}
+                className="w-full bg-[#D97757] hover:bg-[#C55E3F] text-white text-lg py-6"
+              >
+                {createWishlistMutation.isPending ? (
+                  <>Submitting...</>
+                ) : (
+                  <>
+                    <Heart className="w-5 h-5 mr-2" />
+                    Submit Request
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
