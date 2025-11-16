@@ -1,0 +1,226 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Star, MessageSquare } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+
+export default function ReviewSection({ productId }) {
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [reviewData, setReviewData] = useState({
+    customer_name: "",
+    customer_email: "",
+    rating: 5,
+    review_text: ""
+  });
+
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: ['reviews', productId],
+    queryFn: async () => {
+      const allReviews = await base44.entities.Review.list('-created_date');
+      return allReviews.filter(review => review.product_id === productId);
+    }
+  });
+
+  const createReviewMutation = useMutation({
+    mutationFn: (data) => base44.entities.Review.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews', productId] });
+      setShowForm(false);
+      setReviewData({
+        customer_name: "",
+        customer_email: "",
+        rating: 5,
+        review_text: ""
+      });
+    }
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createReviewMutation.mutate({
+      ...reviewData,
+      product_id: productId
+    });
+  };
+
+  const averageRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : 0;
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-4 h-4 ${
+              star <= rating
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Reviews Summary */}
+      <Card className="border-2 border-gray-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl text-[#8B6F47]">Customer Reviews</CardTitle>
+            {!showForm && (
+              <Button
+                onClick={() => setShowForm(true)}
+                variant="outline"
+                className="border-2 border-[#D97757] text-[#D97757] hover:bg-[#FFF8F0]"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Write Review
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {reviews.length > 0 ? (
+            <div className="flex items-center gap-6 mb-6">
+              <div className="text-center">
+                <div className="text-5xl font-bold text-[#D97757] mb-2">{averageRating}</div>
+                <div className="flex justify-center mb-1">{renderStars(Math.round(averageRating))}</div>
+                <p className="text-sm text-gray-600">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</p>
+              </div>
+              <Separator orientation="vertical" className="h-24" />
+              <div className="flex-1">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = reviews.filter(r => r.rating === star).length;
+                  const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                  return (
+                    <div key={star} className="flex items-center gap-2 mb-1">
+                      <span className="text-sm w-8">{star} ★</span>
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-400"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-600 w-8">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review!</p>
+          )}
+
+          {/* Review Form */}
+          {showForm && (
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Write Your Review</h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="review_name">Your Name *</Label>
+                  <Input
+                    id="review_name"
+                    required
+                    value={reviewData.customer_name}
+                    onChange={(e) => setReviewData({...reviewData, customer_name: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="review_email">Your Email *</Label>
+                  <Input
+                    id="review_email"
+                    type="email"
+                    required
+                    value={reviewData.customer_email}
+                    onChange={(e) => setReviewData({...reviewData, customer_email: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>Rating *</Label>
+                  <div className="flex gap-2 mt-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewData({...reviewData, rating: star})}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-colors ${
+                            star <= reviewData.rating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-300 hover:text-yellow-200'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="review_text">Your Review</Label>
+                  <Textarea
+                    id="review_text"
+                    value={reviewData.review_text}
+                    onChange={(e) => setReviewData({...reviewData, review_text: e.target.value})}
+                    placeholder="Share your experience with this product..."
+                    rows={4}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    type="submit"
+                    disabled={createReviewMutation.isPending}
+                    className="bg-[#D97757] hover:bg-[#C55E3F]"
+                  >
+                    {createReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowForm(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Review List */}
+          {reviews.length > 0 && (
+            <div className="space-y-4 mt-6">
+              <Separator />
+              {reviews.map((review) => (
+                <div key={review.id} className="py-4 border-b border-gray-100 last:border-0">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900">{review.customer_name}</p>
+                      <p className="text-sm text-gray-500">{new Date(review.created_date).toLocaleDateString()}</p>
+                    </div>
+                    {renderStars(review.rating)}
+                  </div>
+                  {review.review_text && (
+                    <p className="text-gray-700 mt-2">{review.review_text}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
