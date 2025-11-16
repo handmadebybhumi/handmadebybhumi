@@ -1,0 +1,198 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ShoppingCart, ArrowRight, Trash2, Plus, Minus, Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+
+export default function Cart() {
+  const navigate = useNavigate();
+  const [cart, setCart] = useState([]);
+
+  useEffect(() => {
+    loadCart();
+    
+    const handleCartUpdate = () => {
+      loadCart();
+    };
+    
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+  }, []);
+
+  const loadCart = () => {
+    const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCart(storedCart);
+  };
+
+  const updateQuantity = (index, newQuantity) => {
+    if (newQuantity < 1) return;
+    const updatedCart = [...cart];
+    updatedCart[index].quantity = newQuantity;
+    setCart(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const removeItem = (index) => {
+    const updatedCart = cart.filter((_, i) => i !== index);
+    setCart(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  if (cart.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center">
+          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShoppingCart className="w-12 h-12 text-gray-400" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+          <p className="text-gray-600 mb-8">Add some beautiful handmade items to your cart!</p>
+          <Button
+            size="lg"
+            onClick={() => navigate(createPageUrl("Home"))}
+            className="bg-[#D97757] hover:bg-[#C55E3F] text-white"
+          >
+            Start Shopping
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-[#8B6F47] mb-2">Shopping Cart</h1>
+        <p className="text-gray-600">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Cart Items */}
+        <div className="lg:col-span-2 space-y-4">
+          {cart.map((item, index) => {
+            const mainImage = item.images && item.images.length > 0 ? item.images[0] : null;
+            
+            return (
+              <Card key={index} className="border-2 border-gray-100 hover:border-[#D97757]/30 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {/* Image */}
+                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-[#FFF8F0] to-[#FFE8D6] flex-shrink-0">
+                      {mainImage ? (
+                        <img
+                          src={mainImage}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="w-10 h-10 text-[#D97757]/30" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg text-gray-900 mb-1">{item.name}</h3>
+                      {Object.keys(item.selectedVariations || {}).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {Object.entries(item.selectedVariations).map(([key, value]) => (
+                            <span key={key} className="text-sm text-gray-600">
+                              {key}: <span className="font-medium">{value}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {item.customization_preference && (
+                        <p className="text-xs text-gray-500 italic mb-2">
+                          Note: {item.customization_preference}
+                        </p>
+                      )}
+                      <p className="text-2xl font-bold text-[#D97757]">₹{item.price}</p>
+                    </div>
+
+                    {/* Quantity & Remove */}
+                    <div className="flex flex-col items-end justify-between">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(index)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(index, item.quantity - 1)}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(index, item.quantity + 1)}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Order Summary */}
+        <div>
+          <Card className="border-2 border-gray-200 sticky top-24">
+            <CardHeader>
+              <CardTitle className="text-2xl text-[#8B6F47]">Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal</span>
+                <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="text-sm text-gray-500">
+                Packing and delivery charges will be calculated at checkout
+              </div>
+              
+              <Separator />
+              
+              <Button
+                size="lg"
+                className="w-full bg-[#D97757] hover:bg-[#C55E3F] text-white text-lg py-6 shadow-lg hover:shadow-xl transition-all"
+                onClick={() => navigate(createPageUrl("Checkout"))}
+              >
+                Proceed to Checkout
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full border-2 border-gray-200 hover:border-[#D97757] hover:bg-[#FFF8F0]"
+                onClick={() => navigate(createPageUrl("Home"))}
+              >
+                Continue Shopping
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
