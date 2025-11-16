@@ -1,0 +1,137 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Search, Sparkles, Heart } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import ProductCard from "../components/catalog/ProductCard";
+import CategoryFilter from "../components/catalog/CategoryFilter";
+
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const { data: products, isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => base44.entities.Product.list('-created_date'),
+    initialData: [],
+  });
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  return (
+    <div>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-[#FFF8F0] to-[#FFE8D6] overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-[#D97757] rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-40 h-40 bg-[#C55E3F] rounded-full blur-3xl" />
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+          <div className="max-w-3xl">
+            <Badge className="mb-6 bg-[#D97757] hover:bg-[#C55E3F] text-white px-4 py-2">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Handcrafted with Love
+            </Badge>
+            <h1 className="text-5xl md:text-7xl font-bold text-[#8B6F47] mb-6 leading-tight">
+              Beautiful Crochet
+              <span className="block text-[#D97757]">Just For You</span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Discover our collection of handmade crochet items. Each piece is lovingly crafted with premium yarn and attention to detail.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                size="lg"
+                className="bg-[#D97757] hover:bg-[#C55E3F] text-white text-lg px-8 shadow-lg hover:shadow-xl transition-all"
+                onClick={() => document.getElementById('products').scrollIntoView({ behavior: 'smooth' })}
+              >
+                Shop Collection
+              </Button>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="border-2 border-[#D97757] text-[#D97757] hover:bg-[#FFF8F0] text-lg px-8"
+              >
+                <Heart className="w-5 h-5 mr-2" />
+                Custom Orders
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative Wave */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+            <path d="M0 0L60 10C120 20 240 40 360 46.7C480 53 600 47 720 43.3C840 40 960 40 1080 46.7C1200 53 1320 67 1380 73.3L1440 80V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0V0Z" fill="#FAF9F7"/>
+          </svg>
+        </div>
+      </section>
+
+      {/* Products Section */}
+      <section id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Search and Filter */}
+        <div className="mb-12">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#8B6F47] mb-2">Our Collection</h2>
+              <p className="text-gray-600">Handpicked items for your home and loved ones</p>
+            </div>
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 border-2 border-gray-200 focus:border-[#D97757]"
+              />
+            </div>
+          </div>
+
+          <CategoryFilter 
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+        </div>
+
+        {/* Products Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array(8).fill(0).map((_, i) => (
+              <div key={i} className="space-y-4">
+                <Skeleton className="h-64 w-full rounded-xl" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No products found</h3>
+            <p className="text-gray-500">Try adjusting your search or filters</p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
