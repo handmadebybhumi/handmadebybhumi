@@ -1,0 +1,40 @@
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Package, Home as HomeIcon, ShoppingBag, Shirt, Sparkles } from "lucide-react";
+
+const categories = [
+  { id: "all", label: "All Items", icon: Sparkles },
+  { id: "toys", label: "Toys", icon: Package },
+  { id: "home_decor", label: "Home Decor", icon: HomeIcon },
+  { id: "accessories", label: "Accessories", icon: ShoppingBag },
+  { id: "clothing", label: "Clothing", icon: Shirt },
+  { id: "bags", label: "Bags", icon: ShoppingBag }
+];
+
+export default function CategoryFilter({ selectedCategory, onCategoryChange }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {categories.map((category) => {
+        const Icon = category.icon;
+        const isActive = selectedCategory === category.id;
+        
+        return (
+          <Button
+            key={category.id}
+            variant={isActive ? "default" : "outline"}
+            size="sm"
+            onClick={() => onCategoryChange(category.id)}
+            className={`${
+              isActive
+                ? 'bg-[#D97757] hover:bg-[#C55E3F] text-white border-[#D97757]'
+                : 'border-2 border-gray-200 text-gray-700 hover:border-[#D97757] hover:text-[#D97757] hover:bg-[#FFF8F0]'
+            }`}
+          >
+            <Icon className="w-4 h-4 mr-2" />
+            {category.label}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
